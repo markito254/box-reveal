@@ -25,6 +25,8 @@
       border-radius: 10px;
       cursor: pointer;
       transition: transform 0.2s, background 0.2s;
+      font-size: 20px;
+      font-weight: bold;
     }
     .box:hover { transform: scale(1.05); }
     .revealed {
@@ -42,6 +44,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
     import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
+    // ✅ Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyCvUXHSfopXtUDyp-6YSnM9ZfBU5I6rG7U",
       authDomain: "box-reveal.firebaseapp.com",
@@ -56,12 +59,13 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
+    // ✅ Player setup
     const playerName = prompt("Enter your name:");
     document.getElementById("welcome").textContent = `Welcome, ${playerName}!`;
 
     const boxesDiv = document.getElementById("boxes");
 
-    // ✅ Load total boxes from admin
+    // ✅ Load boxes from /game/totalBoxes
     onValue(ref(db, "game/totalBoxes"), (snap) => {
       const total = snap.val();
       if (!total) return;
@@ -75,7 +79,7 @@
       }
     });
 
-    // ✅ Show revealed boxes to all players
+    // ✅ Update revealed boxes for everyone
     onValue(ref(db, "game/revealed"), (snapshot) => {
       const revealed = snapshot.val() || {};
       document.querySelectorAll(".box").forEach((box, i) => {
@@ -88,7 +92,7 @@
       });
     });
 
-    // ✅ Reveal box and store result
+    // ✅ Handle reveal
     async function revealBox(number, box) {
       const snapshot = await get(ref(db, `game/revealed/${number}`));
       if (snapshot.exists()) {
