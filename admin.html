@@ -40,11 +40,12 @@
 
   <h3 id="status"></h3>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref, set, remove } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+  <!-- ✅ Firebase v8 SDKs (no module needed) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-    // ✅ Correct Firebase config (no duplicate declaration)
+  <script>
+    // ✅ Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCvUXHSfopXtUDyp-6YSnM9ZfBU5I6rG7U",
       authDomain: "box-reveal.firebaseapp.com",
@@ -56,10 +57,10 @@
       measurementId: "G-Y6J9RS7J8Z"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    // 🔢 Shuffle function
+    // 🔢 Shuffle numbers
     function shuffleNumbers(n) {
       const arr = Array.from({ length: n }, (_, i) => i + 1);
       for (let i = arr.length - 1; i > 0; i--) {
@@ -69,24 +70,27 @@
       return arr;
     }
 
-    // 🎮 Start Game
-    document.getElementById("startBtn").addEventListener("click", async () => {
+    // 🎮 Start game
+    document.getElementById("startBtn").addEventListener("click", () => {
       const count = parseInt(document.getElementById("boxCount").value);
       if (!count || count < 1) return alert("Enter a valid number of boxes");
 
       const shuffled = shuffleNumbers(count);
-      await set(ref(db, "game"), {
+
+      db.ref("gameSettings").set({
         totalBoxes: count,
-        numbers: shuffled,
-        revealed: {}
+        numbers: shuffled
       });
+
+      db.ref("boxes").remove();
+      db.ref("players").remove();
 
       document.getElementById("status").textContent = `✅ Game started with ${count} boxes`;
     });
 
-    // 🔁 Reset Game
-    document.getElementById("resetBtn").addEventListener("click", async () => {
-      await remove(ref(db, "game"));
+    // 🔁 Reset game
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      db.ref().remove();
       document.getElementById("status").textContent = "♻️ Game reset";
     });
   </script>
