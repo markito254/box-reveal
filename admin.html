@@ -44,24 +44,23 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
     import { getDatabase, ref, set, remove } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
+    // ✅ Correct Firebase Config
     const firebaseConfig = {
-      const firebaseConfig = {
-  apiKey: "AIzaSyCvUXHSfopXtUDyp-6YSnM9ZfBU5I6rG7U",
-  authDomain: "box-reveal.firebaseapp.com",
-  databaseURL: "https://box-reveal-default-rtdb.firebaseio.com/",
-  projectId: "box-reveal",
-  storageBucket: "box-reveal.firebasestorage.app",
-  messagingSenderId: "305765006119",
-  appId: "1:305765006119:web:f5c343a0436288de228702",
-  measurementId: "G-Y6J9RS7J8Z"
-};
-
+      apiKey: "AIzaSyCvUXHSfopXtUDyp-6YSnM9ZfBU5I6rG7U",
+      authDomain: "box-reveal.firebaseapp.com",
+      databaseURL: "https://box-reveal-default-rtdb.europe-west1.firebasedatabase.app/",
+      projectId: "box-reveal",
+      storageBucket: "box-reveal.appspot.com",
+      messagingSenderId: "305765006119",
+      appId: "1:305765006119:web:f5c343a0436288de228702",
+      measurementId: "G-Y6J9RS7J8Z"
     };
 
+    // ✅ Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Generate shuffled numbers
+    // 🔹 Shuffle function
     function shuffleNumbers(n) {
       const arr = Array.from({ length: n }, (_, i) => i + 1);
       for (let i = arr.length - 1; i > 0; i--) {
@@ -71,25 +70,26 @@
       return arr;
     }
 
+    // 🔹 Start game
     document.getElementById("startBtn").addEventListener("click", async () => {
       const count = parseInt(document.getElementById("boxCount").value);
       if (!count || count < 1) return alert("Enter a valid number of boxes");
 
       const shuffled = shuffleNumbers(count);
-      await set(ref(db, "game"), {
-        totalBoxes: count,
-        numbers: shuffled,
-        revealed: {}
-      });
+
+      // Reset and set new data
+      await remove(ref(db, "/"));
+      await set(ref(db, "gameSettings"), { totalBoxes: count });
+      await set(ref(db, "numbers"), shuffled);
 
       document.getElementById("status").textContent = `✅ Game started with ${count} boxes`;
     });
 
+    // 🔹 Reset
     document.getElementById("resetBtn").addEventListener("click", async () => {
-      await remove(ref(db, "game"));
+      await remove(ref(db, "/"));
       document.getElementById("status").textContent = "♻️ Game reset";
     });
   </script>
 </body>
 </html>
-
