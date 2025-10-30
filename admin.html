@@ -44,7 +44,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
     import { getDatabase, ref, set, remove } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-    // ✅ Correct Firebase Config
+    // ✅ Correct Firebase config (no duplicate declaration)
     const firebaseConfig = {
       apiKey: "AIzaSyCvUXHSfopXtUDyp-6YSnM9ZfBU5I6rG7U",
       authDomain: "box-reveal.firebaseapp.com",
@@ -56,11 +56,10 @@
       measurementId: "G-Y6J9RS7J8Z"
     };
 
-    // ✅ Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // 🔹 Shuffle function
+    // 🔢 Shuffle function
     function shuffleNumbers(n) {
       const arr = Array.from({ length: n }, (_, i) => i + 1);
       for (let i = arr.length - 1; i > 0; i--) {
@@ -70,24 +69,24 @@
       return arr;
     }
 
-    // 🔹 Start game
+    // 🎮 Start Game
     document.getElementById("startBtn").addEventListener("click", async () => {
       const count = parseInt(document.getElementById("boxCount").value);
       if (!count || count < 1) return alert("Enter a valid number of boxes");
 
       const shuffled = shuffleNumbers(count);
-
-      // Reset and set new data
-      await remove(ref(db, "/"));
-      await set(ref(db, "gameSettings"), { totalBoxes: count });
-      await set(ref(db, "numbers"), shuffled);
+      await set(ref(db, "game"), {
+        totalBoxes: count,
+        numbers: shuffled,
+        revealed: {}
+      });
 
       document.getElementById("status").textContent = `✅ Game started with ${count} boxes`;
     });
 
-    // 🔹 Reset
+    // 🔁 Reset Game
     document.getElementById("resetBtn").addEventListener("click", async () => {
-      await remove(ref(db, "/"));
+      await remove(ref(db, "game"));
       document.getElementById("status").textContent = "♻️ Game reset";
     });
   </script>
