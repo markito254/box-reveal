@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Box Reveal Admin</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f6fa;
+      text-align: center;
+      padding: 40px;
+    }
+    h1 { color: #2f3640; }
+    input, button {
+      font-size: 16px;
+      padding: 10px;
+      margin: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #0984e3;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #74b9ff;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 Box Reveal Admin</h1>
+  <p>Set number of boxes and start a new game</p>
+
+  <input type="number" id="boxCount" placeholder="Enter number of boxes" min="1">
+  <button id="startBtn">Start Game</button>
+  <button id="resetBtn">Reset Game</button>
+
+  <h3 id="status"></h3>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getDatabase, ref, set, remove } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCvUXHSfopXtUDyp-6YSnM9ZfBU5I6rG7U",
+      authDomain: "box-reveal.firebaseapp.com",
+      databaseURL: "https://box-reveal-default-rtdb.firebaseio.com/",
+      projectId: "box-reveal",
+      storageBucket: "box-reveal.firebasestorage.app",
+      messagingSenderId: "305765006119",
+      appId: "1:305765006119:web:f5c343a0436288de228702"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Generate shuffled numbers
+    function shuffleNumbers(n) {
+      const arr = Array.from({ length: n }, (_, i) => i + 1);
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    document.getElementById("startBtn").addEventListener("click", async () => {
+      const count = parseInt(document.getElementById("boxCount").value);
+      if (!count || count < 1) return alert("Enter a valid number of boxes");
+
+      const shuffled = shuffleNumbers(count);
+      await set(ref(db, "game"), {
+        totalBoxes: count,
+        numbers: shuffled,
+        revealed: {}
+      });
+
+      document.getElementById("status").textContent = `✅ Game started with ${count} boxes`;
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", async () => {
+      await remove(ref(db, "game"));
+      document.getElementById("status").textContent = "♻️ Game reset";
+    });
+  </script>
+</body>
+</html>
