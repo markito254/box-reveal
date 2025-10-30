@@ -1,81 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Box Reveal Game</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f1f2f6;
+      background: #fafafa;
       text-align: center;
       padding: 30px;
     }
-    h1 {
-      color: #2d3436;
-    }
-    #login {
-      margin-bottom: 20px;
-    }
-    input {
-      padding: 10px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background-color: #0984e3;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      margin-top: 10px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #74b9ff;
-    }
-    #gameBoard {
+    h1 { color: #333; }
+    #boxes {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
       gap: 10px;
-      margin-top: 20px;
-      max-width: 500px;
-      margin-left: auto;
-      margin-right: auto;
+      max-width: 400px;
+      margin: 20px auto;
     }
     .box {
-      background: #dfe6e9;
-      padding: 30px 0;
-      border-radius: 8px;
-      font-size: 18px;
+      background: gold;
+      padding: 20px;
+      border-radius: 10px;
       cursor: pointer;
-      user-select: none;
-      transition: 0.3s;
+      transition: transform 0.2s, background 0.2s;
     }
-    .box.revealed {
-      background: #55efc4;
-      color: #2d3436;
+    .box:hover { transform: scale(1.05); }
+    .revealed {
+      background: lightgreen !important;
       cursor: not-allowed;
     }
   </style>
 </head>
 <body>
   <h1>🎁 Box Reveal Game</h1>
+  <p id="welcome"></p>
+  <div id="boxes"></div>
 
-  <div id="login">
-    <input type="text" id="playerName" placeholder="Enter your name">
-    <button id="joinBtn">Join Game</button>
-  </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-  <div id="welcome"></div>
-  <div id="gameBoard"></div>
-
-  <!-- ✅ Firebase v8 SDK -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
-  <script>
-    // ✅ Firebase Config (same as admin)
     const firebaseConfig = {
       apiKey: "AIzaSyCvUXHSfopXtUDyp-6YSnM9ZfBU5I6rG7U",
       authDomain: "box-reveal.firebaseapp.com",
@@ -87,84 +53,63 @@
       measurementId: "G-Y6J9RS7J8Z"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-    let playerName = null;
-    const gameBoard = document.getElementById("gameBoard");
+    const playerName = prompt("Enter your name:");
+    document.getElementById("welcome").textContent = `Welcome, ${playerName}!`;
 
-    document.getElementById("joinBtn").addEventListener("click", () => {
-      const name = document.getElementById("playerName").value.trim();
-      if (!name) return alert("Please enter your name first!");
-      playerName = name;
+    const boxesDiv = document.getElementById("boxes");
 
-      document.getElementById("welcome").textContent = `Welcome, ${playerName}!`;
-      document.getElementById("login").style.display = "none";
-
-      db.ref("players/" + playerName).set(true);
-      listenForGame();
+    // ✅ Load total boxes from admin
+    onValue(ref(db, "game/totalBoxes"), (snap) => {
+      const total = snap.val();
+      if (!total) return;
+      boxesDiv.innerHTML = "";
+      for (let i = 1; i <= total; i++) {
+        const box = document.createElement("div");
+        box.textContent = "❓";
+        box.classList.add("box");
+        box.onclick = () => revealBox(i, box);
+        boxesDiv.appendChild(box);
+      }
     });
 
-    // 🟦 Listen for game settings and boxes
-    function listenForGame() {
-      db.ref("gameSettings").on("value", (snapshot) => {
-        const settings = snapshot.val();
-        if (!settings) {
-          gameBoard.innerHTML = "<p>Waiting for admin to start the game...</p>";
-          return;
-        }
-        generateBoxes(settings.totalBoxes);
-      });
-
-      db.ref("boxes").on("value", (snapshot) => {
-        const boxes = snapshot.val() || {};
-        updateBoxes(boxes);
-      });
-    }
-
-    // 🎲 Create the boxes
-    function generateBoxes(count) {
-      gameBoard.innerHTML = "";
-      for (let i = 1; i <= count; i++) {
-        const div = document.createElement("div");
-        div.className = "box";
-        div.textContent = "❓";
-        div.dataset.index = i;
-        div.addEventListener("click", () => handleBoxClick(i, div));
-        gameBoard.appendChild(div);
-      }
-    }
-
-    // 📦 Reveal number
-    function handleBoxClick(index, element) {
-      if (!playerName) return;
-      db.ref("boxes/" + index).once("value", (snapshot) => {
-        if (snapshot.exists()) {
-          alert("This box is already taken!");
-          return;
-        }
-
-        db.ref("gameSettings/numbers").once("value", (numbersSnap) => {
-          const numbers = numbersSnap.val();
-          const revealedNum = numbers[index - 1];
-          db.ref("boxes/" + index).set({
-            number: revealedNum,
-            player: playerName
-          });
-        });
-      });
-    }
-
-    // 🔄 Update boxes on all players’ screens
-    function updateBoxes(boxes) {
-      Array.from(document.getElementsByClassName("box")).forEach((box) => {
-        const index = box.dataset.index;
-        if (boxes[index]) {
-          box.textContent = boxes[index].number;
+    // ✅ Show revealed boxes to all players
+    onValue(ref(db, "game/revealed"), (snapshot) => {
+      const revealed = snapshot.val() || {};
+      document.querySelectorAll(".box").forEach((box, i) => {
+        const num = revealed[i + 1];
+        if (num !== undefined) {
+          box.textContent = num;
           box.classList.add("revealed");
-          box.style.pointerEvents = "none";
+          box.onclick = null;
         }
       });
+    });
+
+    // ✅ Reveal box and store result
+    async function revealBox(number, box) {
+      const snapshot = await get(ref(db, `game/revealed/${number}`));
+      if (snapshot.exists()) {
+        alert("❌ This box has already been revealed!");
+        return;
+      }
+
+      const numsSnap = await get(ref(db, "game/numbers"));
+      const numbers = numsSnap.val();
+      if (!numbers) {
+        alert("Game not ready. Wait for admin.");
+        return;
+      }
+
+      const revealedNumber = numbers[number - 1];
+      await set(ref(db, `game/revealed/${number}`), revealedNumber);
+      await set(ref(db, `players/${playerName}`), { box: number, number: revealedNumber });
+
+      box.textContent = revealedNumber;
+      box.classList.add("revealed");
+      box.onclick = null;
     }
   </script>
 </body>
