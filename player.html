@@ -61,7 +61,7 @@
 
     const boxesDiv = document.getElementById("boxes");
 
-    // ✅ Load boxes from "game/totalBoxes"
+    // Load boxes based on your database path
     onValue(ref(db, "game/totalBoxes"), (snap) => {
       const total = snap.val();
       if (!total) return;
@@ -75,8 +75,8 @@
       }
     });
 
-    // ✅ Show revealed boxes in real time
-    onValue(ref(db, "game/revealed"), (snapshot) => {
+    // Listen for revealed boxes
+    onValue(ref(db, "game/boxes"), (snapshot) => {
       const revealed = snapshot.val() || {};
       document.querySelectorAll(".box").forEach((box, i) => {
         const num = revealed[i + 1];
@@ -88,9 +88,8 @@
       });
     });
 
-    // ✅ Reveal box
     async function revealBox(number, box) {
-      const snapshot = await get(ref(db, `game/revealed/${number}`));
+      const snapshot = await get(ref(db, `game/boxes/${number}`));
       if (snapshot.exists()) {
         alert("❌ This box has already been revealed!");
         return;
@@ -99,13 +98,13 @@
       const numsSnap = await get(ref(db, "game/numbers"));
       const numbers = numsSnap.val();
       if (!numbers) {
-        alert("Game not ready. Wait for admin to start.");
+        alert("Game not ready. Wait for admin.");
         return;
       }
 
       const revealedNumber = numbers[number - 1];
-      await set(ref(db, `game/revealed/${number}`), revealedNumber);
-      await set(ref(db, `players/${playerName}`), { box: number, number: revealedNumber });
+      await set(ref(db, `game/boxes/${number}`), revealedNumber);
+      await set(ref(db, `game/players/${playerName}`), { box: number, number: revealedNumber });
 
       box.textContent = revealedNumber;
       box.classList.add("revealed");
