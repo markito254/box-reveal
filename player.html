@@ -56,16 +56,22 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    const playerName = prompt("Enter your name:");
+    const playerName = prompt("Enter your name:") || "Guest";
     document.getElementById("welcome").textContent = `Welcome, ${playerName}!`;
 
     const boxesDiv = document.getElementById("boxes");
 
-    // 🔹 Load boxes from game data
-    onValue(ref(db, "game/totalBoxes"), (snap) => {
-      const total = snap.val();
-      if (!total) return;
+    // 🔹 Load boxes dynamically from /game/totalBoxes
+    onValue(ref(db, "game/totalBoxes"), (snapshot) => {
+      const total = snapshot.val();
+      console.log("Total boxes:", total);
       boxesDiv.innerHTML = "";
+
+      if (!total) {
+        boxesDiv.innerHTML = "<p>Waiting for admin to start the game...</p>";
+        return;
+      }
+
       for (let i = 1; i <= total; i++) {
         const box = document.createElement("div");
         box.textContent = "❓";
@@ -75,23 +81,23 @@
       }
     });
 
-    // 🔹 Listen for revealed boxes
+    // 🔹 Sync revealed boxes live
     onValue(ref(db, "game/revealed"), (snapshot) => {
       const revealed = snapshot.val() || {};
       document.querySelectorAll(".box").forEach((box, i) => {
-        const num = revealed[i + 1];
-        if (num !== undefined) {
-          box.textContent = num;
+        const boxNum = i + 1;
+        if (revealed[boxNum] !== undefined) {
+          box.textContent = revealed[boxNum];
           box.classList.add("revealed");
           box.onclick = null;
         }
       });
     });
 
-    // 🔹 Reveal box
+    // 🔹 Reveal a box
     async function revealBox(number, box) {
-      const snapshot = await get(ref(db, `game/revealed/${number}`));
-      if (snapshot.exists()) {
+      const revealedSnap = await get(ref(db, `game/revealed/${number}`));
+      if (revealedSnap.exists()) {
         alert("❌ This box has already been revealed!");
         return;
       }
@@ -99,13 +105,16 @@
       const numsSnap = await get(ref(db, "game/numbers"));
       const numbers = numsSnap.val();
       if (!numbers) {
-        alert("Game not ready. Wait for admin to start.");
+        alert("Game not ready yet. Please wait for admin.");
         return;
       }
 
       const revealedNumber = numbers[number - 1];
       await set(ref(db, `game/revealed/${number}`), revealedNumber);
-      await set(ref(db, `players/${playerName}`), { box: number, number: revealedNumber });
+      await set(ref(db, `players/${playerName}`), {
+        box: number,
+        number: revealedNumber,
+      });
 
       box.textContent = revealedNumber;
       box.classList.add("revealed");
