@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Box Reveal Admin</title>
   <style>
     body {
@@ -58,7 +58,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Shuffle numbers
+    // Shuffle numbers from 1 to n
     function shuffleNumbers(n) {
       const arr = Array.from({ length: n }, (_, i) => i + 1);
       for (let i = arr.length - 1; i > 0; i--) {
@@ -68,25 +68,33 @@
       return arr;
     }
 
-    // Start Game
     document.getElementById("startBtn").addEventListener("click", async () => {
       const count = parseInt(document.getElementById("boxCount").value);
-      if (!count || count < 1) return alert("Enter a valid number of boxes");
+      if (!count || count < 1) {
+        alert("Enter a valid number of boxes!");
+        return;
+      }
 
       const shuffled = shuffleNumbers(count);
-      await set(ref(db, "game"), {
-        totalBoxes: count,
-        numbers: shuffled,
-        revealed: {}
-      });
-
-      document.getElementById("status").textContent = `✅ Game started with ${count} boxes!`;
+      try {
+        await set(ref(db, "/gameSettings"), { totalBoxes: count });
+        await set(ref(db, "/numbers"), shuffled);
+        await set(ref(db, "/boxes"), {});
+        document.getElementById("status").textContent = `✅ Game started with ${count} boxes!`;
+      } catch (err) {
+        console.error(err);
+        document.getElementById("status").textContent = "❌ Error starting game.";
+      }
     });
 
-    // Reset Game
     document.getElementById("resetBtn").addEventListener("click", async () => {
-      await remove(ref(db, "game"));
-      document.getElementById("status").textContent = "♻️ Game reset!";
+      try {
+        await remove(ref(db, "/"));
+        document.getElementById("status").textContent = "♻️ Game reset!";
+      } catch (err) {
+        console.error(err);
+        document.getElementById("status").textContent = "❌ Error resetting game.";
+      }
     });
   </script>
 </body>
