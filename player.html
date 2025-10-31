@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Box Reveal Game</title>
+  <title>🎁 Box Reveal Game</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -61,7 +61,7 @@
 
     const boxesDiv = document.getElementById("boxes");
 
-    // Load boxes from Firebase
+    // 🔹 Load boxes from game data
     onValue(ref(db, "game/totalBoxes"), (snap) => {
       const total = snap.val();
       if (!total) return;
@@ -75,8 +75,8 @@
       }
     });
 
-    // Sync revealed boxes live
-    onValue(ref(db, "game/boxes"), (snapshot) => {
+    // 🔹 Listen for revealed boxes
+    onValue(ref(db, "game/revealed"), (snapshot) => {
       const revealed = snapshot.val() || {};
       document.querySelectorAll(".box").forEach((box, i) => {
         const num = revealed[i + 1];
@@ -88,8 +88,9 @@
       });
     });
 
+    // 🔹 Reveal box
     async function revealBox(number, box) {
-      const snapshot = await get(ref(db, `game/boxes/${number}`));
+      const snapshot = await get(ref(db, `game/revealed/${number}`));
       if (snapshot.exists()) {
         alert("❌ This box has already been revealed!");
         return;
@@ -103,7 +104,7 @@
       }
 
       const revealedNumber = numbers[number - 1];
-      await set(ref(db, `game/boxes/${number}`), revealedNumber);
+      await set(ref(db, `game/revealed/${number}`), revealedNumber);
       await set(ref(db, `players/${playerName}`), { box: number, number: revealedNumber });
 
       box.textContent = revealedNumber;
