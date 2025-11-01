@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Box Reveal Game</title>
+  <title>Lucky Box Reveal 🎁</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #fafafa;
       text-align: center;
-      padding: 30px;
+      background: #fafafa;
+      padding: 20px;
     }
     h1 { color: #333; }
     #boxes {
@@ -24,6 +24,7 @@
       padding: 20px;
       border-radius: 10px;
       cursor: pointer;
+      font-size: 18px;
       transition: transform 0.2s, background 0.2s;
     }
     .box:hover { transform: scale(1.05); }
@@ -34,23 +35,24 @@
   </style>
 </head>
 <body>
-  <h1>🎁 Box Reveal Game</h1>
+  <h1>🎁 Lucky Box Reveal</h1>
   <p id="welcome"></p>
   <div id="boxes"></div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+    // ✅ Your Firebase config
     const firebaseConfig = {
-      apiKey: "AIzaSyCvUXHSfopXtUDyp-6YSnM9ZfBU5I6rG7U",
-      authDomain: "box-reveal.firebaseapp.com",
-      databaseURL: "https://box-reveal-default-rtdb.europe-west1.firebasedatabase.app/",
-      projectId: "box-reveal",
-      storageBucket: "box-reveal.appspot.com",
-      messagingSenderId: "305765006119",
-      appId: "1:305765006119:web:f5c343a0436288de228702",
-      measurementId: "G-Y6J9RS7J8Z"
+      apiKey: "AIzaSyALybOZoIpKOBVN41vCKWj-D02bB5DhCEc",
+      authDomain: "number-reveal.firebaseapp.com",
+      databaseURL: "https://number-reveal-default-rtdb.firebaseio.com",
+      projectId: "number-reveal",
+      storageBucket: "number-reveal.firebasestorage.app",
+      messagingSenderId: "718790528333",
+      appId: "1:718790528333:web:2b9cfa4640b9886bd8fb04",
+      measurementId: "G-DSK16K48TB"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -61,7 +63,7 @@
 
     const boxesDiv = document.getElementById("boxes");
 
-    // Load boxes based on your database path
+    // ✅ Listen for total boxes set by admin
     onValue(ref(db, "game/totalBoxes"), (snap) => {
       const total = snap.val();
       if (!total) return;
@@ -75,19 +77,20 @@
       }
     });
 
-    // Listen for revealed boxes
+    // ✅ Update boxes in real time
     onValue(ref(db, "game/boxes"), (snapshot) => {
       const revealed = snapshot.val() || {};
       document.querySelectorAll(".box").forEach((box, i) => {
-        const num = revealed[i + 1];
-        if (num !== undefined) {
-          box.textContent = num;
+        const number = revealed[i + 1];
+        if (number !== undefined) {
+          box.textContent = number;
           box.classList.add("revealed");
           box.onclick = null;
         }
       });
     });
 
+    // ✅ Handle box reveal
     async function revealBox(number, box) {
       const snapshot = await get(ref(db, `game/boxes/${number}`));
       if (snapshot.exists()) {
@@ -98,7 +101,7 @@
       const numsSnap = await get(ref(db, "game/numbers"));
       const numbers = numsSnap.val();
       if (!numbers) {
-        alert("Game not ready. Wait for admin.");
+        alert("⏳ Game not ready yet. Wait for admin to start.");
         return;
       }
 
