@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Box Reveal Player</title>
+  <title>Box Reveal Game</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -40,7 +40,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref, onValue, get, set, child } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyALybOZoIpKOBVN41vCKWj-D02bB5DhCEc",
@@ -61,7 +61,6 @@
 
     const boxesDiv = document.getElementById("boxes");
 
-    // Listen for game data
     onValue(ref(db, "game"), (snapshot) => {
       const game = snapshot.val();
       if (!game || !game.totalBoxes || !game.numbers) {
@@ -71,8 +70,8 @@
 
       const total = game.totalBoxes;
       const revealed = game.boxes || {};
-
       boxesDiv.innerHTML = "";
+
       for (let i = 1; i <= total; i++) {
         const box = document.createElement("div");
         box.classList.add("box");
@@ -106,10 +105,7 @@
 
       const revealedNumber = numbers[number - 1];
       await set(ref(db, `game/boxes/${number}`), revealedNumber);
-      await set(ref(db, `game/players/${playerName}`), {
-        box: number,
-        number: revealedNumber
-      });
+      await set(ref(db, `game/players/${playerName}`), { box: number, number: revealedNumber });
     }
   </script>
 </body>
