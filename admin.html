@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Box Reveal Admin</title>
   <style>
@@ -28,37 +28,44 @@
     button:hover {
       background-color: #74b9ff;
     }
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <h1>🎯 Box Reveal Admin</h1>
-  <p>Enter number of boxes to start a game</p>
+  <p>Set number of boxes and start a new game</p>
 
-  <input type="number" id="boxCount" placeholder="Number of boxes" min="1">
+  <input type="number" id="boxCount" placeholder="Enter number of boxes" min="1">
   <button id="startBtn">Start Game</button>
   <button id="resetBtn">Reset Game</button>
 
   <h3 id="status"></h3>
 
   <script type="module">
+    // ✅ Import Firebase SDK
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
     import { getDatabase, ref, set, remove } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-    // ✅ Your Firebase config
+    // ✅ Correct Firebase Configuration
     const firebaseConfig = {
-      apiKey: "AIzaSyCvUXHSfopXtUDyp-6YSnM9ZfBU5I6rG7U",
-      authDomain: "box-reveal.firebaseapp.com",
-     databaseURL: "https://box-reveal-default-rtdb.firebaseio.com",
-      projectId: "box-reveal",
-      storageBucket: "box-reveal.firebasestorage.app",
-      messagingSenderId: "305765006119",
-      appId: "1:305765006119:web:f5c343a0436288de228702",
-      measurementId: "G-Y6J9RS7J8Z"
+      apiKey: "AIzaSyALybOZoIpKOBVN41vCKWj-D02bB5DhCEc",
+      authDomain: "number-reveal.firebaseapp.com",
+      databaseURL: "https://number-reveal-default-rtdb.firebaseio.com",
+      projectId: "number-reveal",
+      storageBucket: "number-reveal.appspot.com",
+      messagingSenderId: "718790528333",
+      appId: "1:718790528333:web:2b9cfa4640b9886bd8fb04",
+      measurementId: "G-DSK16K48TB"
     };
 
+    // ✅ Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
+    // 🔹 Function to shuffle numbers 1 → n
     function shuffleNumbers(n) {
       const arr = Array.from({ length: n }, (_, i) => i + 1);
       for (let i = arr.length - 1; i > 0; i--) {
@@ -68,11 +75,16 @@
       return arr;
     }
 
+    // 🔹 Start Game
     document.getElementById("startBtn").addEventListener("click", async () => {
       const count = parseInt(document.getElementById("boxCount").value);
-      if (!count || count < 1) return alert("Enter a valid number of boxes");
+      if (!count || count < 1) {
+        alert("Enter a valid number of boxes");
+        return;
+      }
 
       const shuffled = shuffleNumbers(count);
+
       await set(ref(db, "game"), {
         totalBoxes: count,
         numbers: shuffled,
@@ -82,6 +94,7 @@
       document.getElementById("status").textContent = `✅ Game started with ${count} boxes`;
     });
 
+    // 🔹 Reset Game
     document.getElementById("resetBtn").addEventListener("click", async () => {
       await remove(ref(db, "game"));
       document.getElementById("status").textContent = "♻️ Game reset";
@@ -89,4 +102,3 @@
   </script>
 </body>
 </html>
-
