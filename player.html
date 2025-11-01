@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lucky Box Reveal 🎁</title>
+  <title>Box Reveal Player</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      text-align: center;
       background: #fafafa;
-      padding: 20px;
+      text-align: center;
+      padding: 30px;
     }
     h1 { color: #333; }
     #boxes {
@@ -24,7 +24,6 @@
       padding: 20px;
       border-radius: 10px;
       cursor: pointer;
-      font-size: 18px;
       transition: transform 0.2s, background 0.2s;
     }
     .box:hover { transform: scale(1.05); }
@@ -35,15 +34,14 @@
   </style>
 </head>
 <body>
-  <h1>🎁 Lucky Box Reveal</h1>
+  <h1>🎁 Box Reveal Game</h1>
   <p id="welcome"></p>
   <div id="boxes"></div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getDatabase, ref, onValue, get, set, child } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-    // ✅ Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyALybOZoIpKOBVN41vCKWj-D02bB5DhCEc",
       authDomain: "number-reveal.firebaseapp.com",
@@ -63,36 +61,37 @@
 
     const boxesDiv = document.getElementById("boxes");
 
-    // ✅ Listen for total boxes set by admin
-    onValue(ref(db, "game/totalBoxes"), (snap) => {
-      const total = snap.val();
-      if (!total) return;
+    // Listen for game data
+    onValue(ref(db, "game"), (snapshot) => {
+      const game = snapshot.val();
+      if (!game || !game.totalBoxes || !game.numbers) {
+        boxesDiv.innerHTML = "<p>Waiting for admin to start a game...</p>";
+        return;
+      }
+
+      const total = game.totalBoxes;
+      const revealed = game.boxes || {};
+
       boxesDiv.innerHTML = "";
       for (let i = 1; i <= total; i++) {
         const box = document.createElement("div");
-        box.textContent = "❓";
         box.classList.add("box");
-        box.onclick = () => revealBox(i, box);
+
+        if (revealed[i]) {
+          box.textContent = revealed[i];
+          box.classList.add("revealed");
+        } else {
+          box.textContent = "❓";
+          box.onclick = () => revealBox(i);
+        }
+
         boxesDiv.appendChild(box);
       }
     });
 
-    // ✅ Update boxes in real time
-    onValue(ref(db, "game/boxes"), (snapshot) => {
-      const revealed = snapshot.val() || {};
-      document.querySelectorAll(".box").forEach((box, i) => {
-        const number = revealed[i + 1];
-        if (number !== undefined) {
-          box.textContent = number;
-          box.classList.add("revealed");
-          box.onclick = null;
-        }
-      });
-    });
-
-    // ✅ Handle box reveal
-    async function revealBox(number, box) {
-      const snapshot = await get(ref(db, `game/boxes/${number}`));
+    async function revealBox(number) {
+      const boxRef = ref(db, `game/boxes/${number}`);
+      const snapshot = await get(boxRef);
       if (snapshot.exists()) {
         alert("❌ This box has already been revealed!");
         return;
@@ -101,17 +100,16 @@
       const numsSnap = await get(ref(db, "game/numbers"));
       const numbers = numsSnap.val();
       if (!numbers) {
-        alert("⏳ Game not ready yet. Wait for admin to start.");
+        alert("Game not ready. Wait for admin.");
         return;
       }
 
       const revealedNumber = numbers[number - 1];
       await set(ref(db, `game/boxes/${number}`), revealedNumber);
-      await set(ref(db, `game/players/${playerName}`), { box: number, number: revealedNumber });
-
-      box.textContent = revealedNumber;
-      box.classList.add("revealed");
-      box.onclick = null;
+      await set(ref(db, `game/players/${playerName}`), {
+        box: number,
+        number: revealedNumber
+      });
     }
   </script>
 </body>
