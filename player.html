@@ -3,17 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🎁 Player | Box Reveal Game</title>
+  <title>Box Reveal Game</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4f4f4;
+      background: #fafafa;
       text-align: center;
       padding: 30px;
     }
-    h1 {
-      color: #222;
-    }
+    h1 { color: #333; }
     #boxes {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
@@ -28,17 +26,10 @@
       cursor: pointer;
       transition: transform 0.2s, background 0.2s;
     }
-    .box:hover {
-      transform: scale(1.05);
-    }
+    .box:hover { transform: scale(1.05); }
     .revealed {
       background: lightgreen !important;
       cursor: not-allowed;
-    }
-    #status {
-      margin-top: 15px;
-      color: #555;
-      font-weight: bold;
     }
   </style>
 </head>
@@ -46,13 +37,11 @@
   <h1>🎁 Box Reveal Game</h1>
   <p id="welcome"></p>
   <div id="boxes"></div>
-  <p id="status">Waiting for game to start...</p>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getDatabase, ref, onValue, get, set, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-    // ✅ Your Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyALybOZoIpKOBVN41vCKWj-D02bB5DhCEc",
       authDomain: "number-reveal.firebaseapp.com",
@@ -67,83 +56,44 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Ask player name
-    const playerName = prompt("Enter your name:");
+    const playerName = prompt("Enter your name:") || "Player";
     document.getElementById("welcome").textContent = `Welcome, ${playerName}!`;
 
     const boxesDiv = document.getElementById("boxes");
-    const status = document.getElementById("status");
 
-    // Watch game data
     onValue(ref(db, "game"), (snap) => {
-      const gameData = snap.val();
-      if (!gameData) {
-        status.textContent = "Waiting for admin to start the game...";
-        boxesDiv.innerHTML = "";
+      const game = snap.val();
+      if (!game || !game.totalBoxes) {
+        boxesDiv.innerHTML = "<p>Waiting for admin to start game...</p>";
         return;
       }
 
-      const total = gameData.totalBoxes;
-      const numbers = gameData.numbers;
-      if (!total || !numbers) {
-        status.textContent = "Game setup incomplete.";
-        return;
-      }
-
-      // Create boxes if not already created
       boxesDiv.innerHTML = "";
-      for (let i = 1; i <= total; i++) {
+      for (let i = 1; i <= game.totalBoxes; i++) {
         const box = document.createElement("div");
         box.classList.add("box");
         box.textContent = "❓";
-        box.onclick = () => revealBox(i, box);
+
+        if (game.revealed && game.revealed[i]) {
+          box.textContent = game.revealed[i];
+          box.classList.add("revealed");
+        } else {
+          box.addEventListener("click", async () => {
+            const currentSnap = await get(ref(db, `game/revealed/${i}`));
+            if (currentSnap.exists()) {
+              alert("❌ This box is already revealed!");
+              return;
+            }
+
+            const num = game.numbers[i - 1];
+            await update(ref(db, "game/revealed"), { [i]: num });
+            await set(ref(db, `players/${playerName}`), { box: i, number: num });
+          });
+        }
+
         boxesDiv.appendChild(box);
       }
-      status.textContent = "Game ready! Click a box to reveal your number.";
     });
-
-    // Watch for revealed boxes in real-time
-    onValue(ref(db, "revealed"), (snapshot) => {
-      const revealed = snapshot.val() || {};
-      document.querySelectorAll(".box").forEach((box, index) => {
-        const num = revealed[index + 1];
-        if (num !== undefined) {
-          box.textContent = num;
-          box.classList.add("revealed");
-          box.onclick = null;
-        }
-      });
-    });
-
-    // Reveal a box
-    async function revealBox(number, box) {
-      const revealedRef = ref(db, `revealed/${number}`);
-      const snap = await get(revealedRef);
-      if (snap.exists()) {
-        alert("❌ This box has already been revealed!");
-        return;
-      }
-
-      const gameSnap = await get(ref(db, "game"));
-      const gameData = gameSnap.val();
-      if (!gameData) {
-        alert("Game not ready yet.");
-        return;
-      }
-
-      const numToReveal = gameData.numbers[number - 1];
-      await set(revealedRef, numToReveal);
-      await set(ref(db, `players/${playerName}`), {
-        box: number,
-        number: numToReveal
-      });
-
-      box.textContent = numToReveal;
-      box.classList.add("revealed");
-      box.onclick = null;
-    }
   </script>
 </body>
 </html>
-
-
