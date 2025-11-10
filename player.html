@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Box Reveal Game</title>
+  <title>Box Reveal Player</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -24,6 +24,7 @@
       padding: 20px;
       border-radius: 10px;
       cursor: pointer;
+      font-size: 22px;
       transition: transform 0.2s, background 0.2s;
     }
     .box:hover { transform: scale(1.05); }
@@ -43,28 +44,33 @@
     import { getDatabase, ref, onValue, get, set, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyALybOZoIpKOBVN41vCKWj-D02bB5DhCEc",
-      authDomain: "number-reveal.firebaseapp.com",
-      databaseURL: "https://number-reveal-default-rtdb.firebaseio.com",
-      projectId: "number-reveal",
-      storageBucket: "number-reveal.firebasestorage.app",
-      messagingSenderId: "718790528333",
-      appId: "1:718790528333:web:2b9cfa4640b9886bd8fb04",
-      measurementId: "G-DSK16K48TB"
+      apiKey: "AIzaSyCvUXHSfopXtUDyp-6YSnM9ZfBU5I6rG7U",
+      authDomain: "box-reveal.firebaseapp.com",
+      databaseURL: "https://box-reveal-default-rtdb.firebaseio.com",
+      projectId: "box-reveal",
+      storageBucket: "box-reveal.firebasestorage.app",
+      messagingSenderId: "305765006119",
+      appId: "1:305765006119:web:f5c343a0436288de228702",
+      measurementId: "G-Y6J9RS7J8Z"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    const playerName = prompt("Enter your name:") || "Player";
+    const playerName = prompt("Enter your name:")?.trim();
+    if (!playerName) {
+      alert("You must enter a name to play.");
+      location.reload();
+    }
     document.getElementById("welcome").textContent = `Welcome, ${playerName}!`;
 
     const boxesDiv = document.getElementById("boxes");
 
-    onValue(ref(db, "game"), (snap) => {
-      const game = snap.val();
+    // Load game and render boxes
+    onValue(ref(db, "game"), (snapshot) => {
+      const game = snapshot.val();
       if (!game || !game.totalBoxes) {
-        boxesDiv.innerHTML = "<p>Waiting for admin to start game...</p>";
+        boxesDiv.innerHTML = "<p>No active game. Please wait for admin to start one.</p>";
         return;
       }
 
@@ -74,22 +80,35 @@
         box.classList.add("box");
         box.textContent = "❓";
 
+        // If already revealed, show value
         if (game.revealed && game.revealed[i]) {
-          box.textContent = game.revealed[i];
+          box.textContent = game.revealed[i].number;
           box.classList.add("revealed");
-        } else {
-          box.addEventListener("click", async () => {
-            const currentSnap = await get(ref(db, `game/revealed/${i}`));
-            if (currentSnap.exists()) {
-              alert("❌ This box is already revealed!");
-              return;
-            }
-
-            const num = game.numbers[i - 1];
-            await update(ref(db, "game/revealed"), { [i]: num });
-            await set(ref(db, `players/${playerName}`), { box: i, number: num });
-          });
         }
+
+        box.onclick = async () => {
+          if (box.classList.contains("revealed")) return;
+          const playerSnap = await get(ref(db, `game/players/${playerName}`));
+          if (playerSnap.exists()) {
+            alert("You already revealed a box!");
+            return;
+          }
+
+          const revealedSnap = await get(ref(db, `game/revealed/${i}`));
+          if (revealedSnap.exists()) {
+            alert("This box is already taken!");
+            return;
+          }
+
+          const numbers = game.numbers;
+          const number = numbers[i - 1];
+
+          // Update both revealed and players nodes
+          await update(ref(db, "game"), {
+            [`revealed/${i}`]: { number, player: playerName },
+            [`players/${playerName}`]: { box: i, number }
+          });
+        };
 
         boxesDiv.appendChild(box);
       }
