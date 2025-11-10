@@ -28,6 +28,12 @@
     button:hover {
       background-color: #74b9ff;
     }
+    #players {
+      margin-top: 30px;
+      text-align: left;
+      max-width: 400px;
+      margin-inline: auto;
+    }
   </style>
 </head>
 <body>
@@ -39,25 +45,28 @@
   <button id="resetBtn">Reset Game</button>
 
   <h3 id="status"></h3>
+  <h2>👥 Players and their choices:</h2>
+  <div id="players"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref, set, remove } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { getDatabase, ref, set, remove, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyALybOZoIpKOBVN41vCKWj-D02bB5DhCEc",
-      authDomain: "number-reveal.firebaseapp.com",
-      databaseURL: "https://number-reveal-default-rtdb.firebaseio.com",
-      projectId: "number-reveal",
-      storageBucket: "number-reveal.firebasestorage.app",
-      messagingSenderId: "718790528333",
-      appId: "1:718790528333:web:2b9cfa4640b9886bd8fb04",
-      measurementId: "G-DSK16K48TB"
+      apiKey: "AIzaSyCvUXHSfopXtUDyp-6YSnM9ZfBU5I6rG7U",
+      authDomain: "box-reveal.firebaseapp.com",
+      databaseURL: "https://box-reveal-default-rtdb.firebaseio.com",
+      projectId: "box-reveal",
+      storageBucket: "box-reveal.firebasestorage.app",
+      messagingSenderId: "305765006119",
+      appId: "1:305765006119:web:f5c343a0436288de228702",
+      measurementId: "G-Y6J9RS7J8Z"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
+    // Generate shuffled numbers
     function shuffleNumbers(n) {
       const arr = Array.from({ length: n }, (_, i) => i + 1);
       for (let i = arr.length - 1; i > 0; i--) {
@@ -72,11 +81,11 @@
       if (!count || count < 1) return alert("Enter a valid number of boxes");
 
       const shuffled = shuffleNumbers(count);
-
       await set(ref(db, "game"), {
         totalBoxes: count,
         numbers: shuffled,
-        revealed: {}
+        revealed: {},
+        players: {}
       });
 
       document.getElementById("status").textContent = `✅ Game started with ${count} boxes`;
@@ -85,6 +94,23 @@
     document.getElementById("resetBtn").addEventListener("click", async () => {
       await remove(ref(db, "game"));
       document.getElementById("status").textContent = "♻️ Game reset";
+      document.getElementById("players").innerHTML = "";
+    });
+
+    // Live update player choices
+    onValue(ref(db, "game/players"), (snapshot) => {
+      const playersDiv = document.getElementById("players");
+      playersDiv.innerHTML = "";
+      const players = snapshot.val();
+      if (!players) {
+        playersDiv.textContent = "No players yet.";
+        return;
+      }
+      for (const [name, info] of Object.entries(players)) {
+        const p = document.createElement("p");
+        p.textContent = `${name} chose box ${info.box} → number ${info.number}`;
+        playersDiv.appendChild(p);
+      }
     });
   </script>
 </body>
