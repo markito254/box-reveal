@@ -3,34 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Box Reveal Player</title>
+  <title>🎁 Box Reveal Game</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #fafafa;
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
       text-align: center;
-      padding: 30px;
+      padding: 40px;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
-    h1 { color: #333; }
+
+    h1 {
+      color: #333;
+      font-size: 2.2em;
+      margin-bottom: 10px;
+      animation: fadeIn 1s ease-out;
+    }
+
+    #welcome {
+      font-size: 1.2em;
+      color: #444;
+      margin-bottom: 25px;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    #welcome.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
     #boxes {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-      gap: 10px;
-      max-width: 400px;
-      margin: 20px auto;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 15px;
+      max-width: 500px;
+      margin: 0 auto;
     }
+
     .box {
-      background: gold;
-      padding: 20px;
-      border-radius: 10px;
+      background: linear-gradient(145deg, #ffd700, #ffcc00);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      border-radius: 15px;
+      padding: 25px;
+      font-size: 1.5em;
       cursor: pointer;
-      font-size: 22px;
-      transition: transform 0.2s, background 0.2s;
+      color: #333;
+      transition: all 0.25s ease;
+      user-select: none;
     }
-    .box:hover { transform: scale(1.05); }
-    .revealed {
-      background: lightgreen !important;
+
+    .box:hover {
+      transform: scale(1.1) rotate(3deg);
+      background: linear-gradient(145deg, #fff07d, #ffdd00);
+    }
+
+    .box.revealed {
+      background: #7bed9f;
+      color: #fff;
+      transform: scale(1.05);
       cursor: not-allowed;
+      animation: pop 0.5s ease-out;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1.05); opacity: 1; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
@@ -41,7 +86,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getDatabase, ref, onValue, get, set, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCvUXHSfopXtUDyp-6YSnM9ZfBU5I6rG7U",
@@ -57,62 +102,62 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    const playerName = prompt("Enter your name:")?.trim();
-    if (!playerName) {
-      alert("You must enter a name to play.");
-      location.reload();
-    }
-    document.getElementById("welcome").textContent = `Welcome, ${playerName}!`;
+    const playerName = prompt("Please enter your name:");
+    const welcome = document.getElementById("welcome");
+    welcome.textContent = `Welcome, ${playerName}!`;
+    welcome.classList.add("show");
 
     const boxesDiv = document.getElementById("boxes");
 
-    // Load game and render boxes
-    onValue(ref(db, "game"), (snapshot) => {
-      const game = snapshot.val();
-      if (!game || !game.totalBoxes) {
-        boxesDiv.innerHTML = "<p>No active game. Please wait for admin to start one.</p>";
-        return;
-      }
-
+    // Load boxes from admin
+    onValue(ref(db, "game/totalBoxes"), (snap) => {
+      const total = snap.val();
+      if (!total) return;
       boxesDiv.innerHTML = "";
-      for (let i = 1; i <= game.totalBoxes; i++) {
+      for (let i = 1; i <= total; i++) {
         const box = document.createElement("div");
-        box.classList.add("box");
         box.textContent = "❓";
-
-        // If already revealed, show value
-        if (game.revealed && game.revealed[i]) {
-          box.textContent = game.revealed[i].number;
-          box.classList.add("revealed");
-        }
-
-        box.onclick = async () => {
-          if (box.classList.contains("revealed")) return;
-          const playerSnap = await get(ref(db, `game/players/${playerName}`));
-          if (playerSnap.exists()) {
-            alert("You already revealed a box!");
-            return;
-          }
-
-          const revealedSnap = await get(ref(db, `game/revealed/${i}`));
-          if (revealedSnap.exists()) {
-            alert("This box is already taken!");
-            return;
-          }
-
-          const numbers = game.numbers;
-          const number = numbers[i - 1];
-
-          // Update both revealed and players nodes
-          await update(ref(db, "game"), {
-            [`revealed/${i}`]: { number, player: playerName },
-            [`players/${playerName}`]: { box: i, number }
-          });
-        };
-
+        box.classList.add("box");
+        box.onclick = () => revealBox(i, box);
         boxesDiv.appendChild(box);
       }
     });
+
+    // Show revealed boxes
+    onValue(ref(db, "game/revealed"), (snapshot) => {
+      const revealed = snapshot.val() || {};
+      document.querySelectorAll(".box").forEach((box, i) => {
+        const num = revealed[i + 1];
+        if (num !== undefined) {
+          box.textContent = num;
+          box.classList.add("revealed");
+          box.onclick = null;
+        }
+      });
+    });
+
+    async function revealBox(number, box) {
+      const snapshot = await get(ref(db, `game/revealed/${number}`));
+      if (snapshot.exists()) {
+        alert("❌ This box has already been revealed!");
+        return;
+      }
+
+      const numsSnap = await get(ref(db, "game/numbers"));
+      const numbers = numsSnap.val();
+      if (!numbers) {
+        alert("⚠️ Game not ready. Please wait for admin.");
+        return;
+      }
+
+      const revealedNumber = numbers[number - 1];
+      await set(ref(db, `game/revealed/${number}`), revealedNumber);
+      await set(ref(db, `players/${playerName}`), { box: number, number: revealedNumber });
+
+      box.textContent = revealedNumber;
+      box.classList.add("revealed");
+      box.onclick = null;
+    }
   </script>
 </body>
 </html>
